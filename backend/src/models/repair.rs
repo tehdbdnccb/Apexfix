@@ -17,6 +17,7 @@ pub struct RepairBooking {
 
 #[derive(Deserialize)]
 pub struct CreateBookingRequest {
+    pub user_id: Uuid,
     pub technician_id: Uuid,
     pub device_model: String,
     pub issue_description: String,
@@ -27,3 +28,4 @@ pub struct CreateBookingRequest {
 pub struct UpdateStatusRequest {
     pub status: String,
 }
+

@@ -1,5 +1,5 @@
 mod config;
-mod error;
+mod errors;
 mod db;
 mod models;
 mod services;
@@ -44,7 +44,7 @@ impl FromRef<AppState> for Config {
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Load environment configuration
-    let config = Config::from_env();
+    let config = Config::init()?;
 
     // Initialize PostgreSQL connection pool
     let pool = init_pool(&config).await?;
@@ -75,3 +75,4 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     Ok(())
 }
+
