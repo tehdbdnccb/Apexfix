@@ -1,6 +1,6 @@
 use sqlx::PgPool;
 use crate::models::technician::Technician;
-use crate::error::AppError;
+use crate::errors::AppError;
 
 pub async fn find_technicians_within_radius(
     pool: &PgPool,
