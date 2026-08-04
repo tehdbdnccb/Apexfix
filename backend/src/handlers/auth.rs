@@ -11,7 +11,7 @@ use serde::{Serialize, Deserialize};
 
 use crate::{
     models::user::{RegisterRequest, LoginRequest, User, AuthResponse, UserResponse},
-    error::AppError,
+    errors::AppError,
     config::Config,
 };
 
@@ -119,3 +119,4 @@ fn create_jwt(user_id: &Uuid, secret: &str) -> Result<String, AppError> {
     )
     .map_err(|e| AppError::InternalServerError(format!("Token generation error: {}", e)))
 }
+

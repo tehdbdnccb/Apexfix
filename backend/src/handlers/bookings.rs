@@ -7,7 +7,7 @@ use uuid::Uuid;
 
 use crate::{
     models::repair::{RepairBooking, CreateBookingRequest, UpdateStatusRequest},
-    error::AppError,
+    errors::AppError,
 };
 
 pub async fn create_booking(
@@ -62,3 +62,4 @@ pub async fn update_booking_status(
 
     Ok(Json(booking))
 }
+
