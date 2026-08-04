@@ -8,7 +8,7 @@ use uuid::Uuid;
 use crate::{
     models::technician::{Technician, CreateTechnicianRequest, MatchQueryRequest},
     services::{spatial, matching::{rank_technicians, RankedTechnician}},
-    error::AppError,
+    errors::AppError,
 };
 
 pub async fn create_technician(
@@ -63,3 +63,4 @@ pub async fn match_technicians(
 
     Ok(Json(ranked))
 }
+
