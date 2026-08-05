@@ -6,6 +6,11 @@ pub async fn run_migrations(pool: &PgPool) -> Result<(), sqlx::Error> {
         .execute(pool)
         .await?;
 
+    // Enable PostGIS extension for geographic queries
+    let _ = sqlx::query("CREATE EXTENSION IF NOT EXISTS \"postgis\";")
+        .execute(pool)
+        .await;
+
     // Users table
     sqlx::query(
         r#"
