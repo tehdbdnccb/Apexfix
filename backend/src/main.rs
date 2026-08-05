@@ -4,6 +4,7 @@ mod db;
 mod models;
 mod services;
 mod handlers;
+mod migrations;
 
 use axum::{
     extract::FromRef,
@@ -21,6 +22,7 @@ use crate::{
         bookings::{create_booking, update_booking_status},
     },
     db::{pool::init_pool, redis::init_redis},
+    migrations::run_migrations,
 };
 
 #[derive(Clone)]
@@ -48,6 +50,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Initialize PostgreSQL connection pool
     let pool = init_pool(&config).await?;
+
+    // Run database migrations automatically
+    run_migrations(&pool).await?;
 
     // Initialize Redis client
     let _redis_client = init_redis(&config)?;
