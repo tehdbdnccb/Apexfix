@@ -6,25 +6,26 @@ import api from "@/lib/api";
 import { useAuthStore } from "@/store/useAuthStore";
 import { MapPin, Star, ShieldCheck, Zap, Loader2, AlertCircle } from "lucide-react";
 
-interface RankedTechnician {
-  technician: {
-    id: string;
-    shop_name: string;
-    location_name: string;
-    certification_level: number;
-    part_authenticity_score: number;
-    speed_score: number;
-    is_verified: boolean;
-  };
-  distance_km: number;
-  final_score: number;
+interface Technician {
+  id: string;
+  shop_name: string;
+  location_name: string;
+  certification_level: number;
+  part_authenticity_score: number;
+  speed_score: number;
+  is_verified: boolean;
+}
+
+interface MatchResult {
+  technicians: Technician[];
+  count: number;
 }
 
 export default function MatchPage() {
   const router = useRouter();
   const { isAuthenticated } = useAuthStore();
   
-  const [technicians, setTechnicians] = useState<RankedTechnician[]>([]);
+  const [technicians, setTechnicians] = useState<Technician[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [locationStatus, setLocationStatus] = useState("Locating you...");
@@ -60,15 +61,17 @@ export default function MatchPage() {
 
   const fetchTechnicians = async (latitude: number, longitude: number) => {
     try {
-      const response = await api.get("/technicians/match", {
+      const response = await api.get<MatchResult>("/technicians/match", {
         params: {
           latitude,
           longitude,
           max_distance_km: 50.0, // Search within 50km
         },
       });
-      setTechnicians(response.data);
+      // Extract technicians array from response object
+      setTechnicians(response.data.technicians || []);
     } catch (err: any) {
+      console.error("Error fetching technicians:", err);
       setError("Failed to fetch technicians. Please try again later.");
     } finally {
       setLoading(false);
@@ -110,22 +113,22 @@ export default function MatchPage() {
         )}
 
         <div className="space-y-6">
-          {technicians.map((match, index) => (
+          {technicians.map((technician, index) => (
             <div 
-              key={match.technician.id} 
+              key={technician.id} 
               className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow flex flex-col md:flex-row md:items-center justify-between"
             >
               <div className="flex-1">
                 <div className="flex items-center space-x-3 mb-2">
                   <h2 className="text-xl font-bold text-gray-900">
-                    {match.technician.shop_name}
+                    {technician.shop_name}
                   </h2>
                   {index === 0 && (
                     <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
                       Top Match
                     </span>
                   )}
-                  {match.technician.is_verified && (
+                  {technician.is_verified && (
                     <span title="Verified Partner" className="inline-flex items-center">
                       <ShieldCheck className="h-5 w-5 text-blue-600" />
                     </span>
@@ -134,21 +137,21 @@ export default function MatchPage() {
                 
                 <div className="flex items-center text-gray-500 text-sm mb-4">
                   <MapPin className="h-4 w-4 mr-1" />
-                  {match.technician.location_name} • {match.distance_km.toFixed(1)} km away
+                  {technician.location_name}
                 </div>
 
                 <div className="flex flex-wrap gap-4 text-sm">
                   <div className="flex items-center text-gray-700">
+                    <ShieldCheck className="h-4 w-4 text-blue-400 mr-1.5" />
+                    <span>Certification: {(technician.certification_level * 20).toFixed(0)}%</span>
+                  </div>
+                  <div className="flex items-center text-gray-700">
                     <Star className="h-4 w-4 text-yellow-400 mr-1.5" fill="currentColor" />
-                    <span>Score: <span className="font-semibold text-gray-900">{(match.final_score * 10).toFixed(1)}/10</span></span>
+                    <span>Quality: {(technician.part_authenticity_score * 20).toFixed(0)}%</span>
                   </div>
                   <div className="flex items-center text-gray-700">
-                    <ShieldCheck className="h-4 w-4 text-gray-400 mr-1.5" />
-                    <span>Quality: {(match.technician.part_authenticity_score * 100).toFixed(0)}%</span>
-                  </div>
-                  <div className="flex items-center text-gray-700">
-                    <Zap className="h-4 w-4 text-gray-400 mr-1.5" />
-                    <span>Speed: {(match.technician.speed_score * 100).toFixed(0)}%</span>
+                    <Zap className="h-4 w-4 text-orange-400 mr-1.5" />
+                    <span>Speed: {(technician.speed_score * 20).toFixed(0)}%</span>
                   </div>
                 </div>
               </div>
@@ -168,3 +171,4 @@ export default function MatchPage() {
     </div>
   );
 }
+
