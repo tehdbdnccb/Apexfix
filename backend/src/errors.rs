@@ -10,6 +10,8 @@ pub enum AppError {
     Sqlx(sqlx::Error),
     AuthError(String),
     NotFound(String),
+    BadRequest(String),
+    InternalError(String),
     InternalServerError(String),
 }
 
@@ -28,6 +30,8 @@ impl IntoResponse for AppError {
             ),
             AppError::AuthError(msg) => (StatusCode::UNAUTHORIZED, msg),
             AppError::NotFound(msg) => (StatusCode::NOT_FOUND, msg),
+            AppError::BadRequest(msg) => (StatusCode::BAD_REQUEST, msg),
+            AppError::InternalError(msg) => (StatusCode::INTERNAL_SERVER_ERROR, msg),
             AppError::InternalServerError(msg) => (StatusCode::INTERNAL_SERVER_ERROR, msg),
         };
 
@@ -38,3 +42,4 @@ impl IntoResponse for AppError {
         (status, body).into_response()
     }
 }
+
