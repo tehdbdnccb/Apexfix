@@ -18,7 +18,7 @@ use crate::{
     config::Config,
     handlers::{
         auth::{register, login},
-        technicians::{create_technician, match_technicians},
+        technicians::{create_technician, match_technicians, onboard_technician},
         bookings::{create_booking, update_booking_status},
     },
     db::{pool::init_pool, redis::init_redis},
@@ -66,6 +66,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let app = Router::new()
         .route("/api/auth/register", post(register))
         .route("/api/auth/login", post(login))
+        .route("/api/technicians/onboard", post(onboard_technician))
         .route("/api/technicians", post(create_technician))
         .route("/api/technicians/match", get(match_technicians))
         .route("/api/bookings", post(create_booking))
