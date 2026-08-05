@@ -2,10 +2,10 @@ use crate::models::technician::Technician;
 
 #[derive(Clone, Copy)]
 pub struct MatchWeights {
-    pub w1: f32, // Certification weight
-    pub w2: f32, // Part Authenticity weight
-    pub w3: f32, // Speed weight
-    pub w4: f32, // Distance penalty weight
+    pub w1: f64, // Certification weight
+    pub w2: f64, // Part Authenticity weight
+    pub w3: f64, // Speed weight
+    pub w4: f64, // Distance penalty weight
 }
 
 impl Default for MatchWeights {
@@ -23,20 +23,19 @@ pub fn compute_technician_score(
     technician: &Technician,
     distance_km: f64,
     weights: &MatchWeights,
-) -> f32 {
+) -> f64 {
     let cert = technician.certification_level;
     let auth = technician.part_authenticity_score;
     let speed = technician.speed_score;
-    let dist = distance_km as f32;
 
-    (weights.w1 * cert) + (weights.w2 * auth) + (weights.w3 * speed) - (weights.w4 * dist)
+    (weights.w1 * cert) + (weights.w2 * auth) + (weights.w3 * speed) - (weights.w4 * distance_km)
 }
 
 #[derive(serde::Serialize)]
 pub struct RankedTechnician {
     pub technician: Technician,
     pub distance_km: f64,
-    pub match_score: f32,
+    pub match_score: f64,
 }
 
 pub fn rank_technicians(
@@ -60,3 +59,4 @@ pub fn rank_technicians(
     ranked.sort_by(|a, b| b.match_score.partial_cmp(&a.match_score).unwrap_or(std::cmp::Ordering::Equal));
     ranked
 }
+
