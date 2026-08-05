@@ -4,15 +4,13 @@ use axum::{
 };
 use sqlx::PgPool;
 use uuid::Uuid;
-use serde_json::json;
 
 use crate::{
     models::technician::{
         Technician, CreateTechnicianRequest, MatchQueryRequest, 
         TechnicianOnboardingRequest, TechnicianOnboardingResponse,
-        TechnicianMatchResult,
     },
-    services::{spatial, matching::{rank_technicians, RankedTechnician}},
+    services::{spatial, matching::rank_technicians},
     errors::AppError,
 };
 
@@ -76,7 +74,7 @@ pub async fn onboard_technician(
 
     let response_time = payload.response_time_hours.unwrap_or(24);
 
-    let result = sqlx::query(
+    sqlx::query(
         r#"
         INSERT INTO technicians (
             id, user_id, shop_name, phone_number, shop_address, location_name, 
@@ -85,7 +83,6 @@ pub async fn onboard_technician(
             is_verified, created_at, updated_at
         )
         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18)
-        RETURNING id, user_id, shop_name, location_name, is_verified
         "#,
     )
     .bind(technician_id)
@@ -106,7 +103,7 @@ pub async fn onboard_technician(
     .bind(false) // Start unverified
     .bind(now)
     .bind(now)
-    .fetch_one(&pool)
+    .execute(&pool)
     .await
     .map_err(|e| {
         if e.to_string().contains("duplicate") {
@@ -116,20 +113,14 @@ pub async fn onboard_technician(
         }
     })?;
 
-    let (id, user_id, shop_name, location_name, is_verified): (Uuid, Uuid, String, String, bool) =
-        sqlx::query_as("SELECT id, user_id, shop_name, location_name, is_verified FROM technicians WHERE id = $1")
-            .bind(technician_id)
-            .fetch_one(&pool)
-            .await?;
-
     Ok((
         StatusCode::CREATED,
         Json(TechnicianOnboardingResponse {
-            id,
-            user_id,
-            shop_name,
-            location_name,
-            is_verified,
+            id: technician_id,
+            user_id: payload.user_id,
+            shop_name: payload.shop_name,
+            location_name: payload.location_name,
+            is_verified: false,
             message: "Profile created successfully! You'll be verified by our team within 24 hours.".to_string(),
         }),
     ))
@@ -170,10 +161,16 @@ pub async fn create_technician(
     Ok((StatusCode::CREATED, Json(technician)))
 }
 
+#[derive(serde::Serialize)]
+pub struct MatchResult {
+    pub technicians: Vec<Technician>,
+    pub count: usize,
+}
+
 pub async fn match_technicians(
     State(pool): State<PgPool>,
     Query(params): Query<MatchQueryRequest>,
-) -> Result<Json<Vec<TechnicianMatchResult>>, AppError> {
+) -> Result<Json<MatchResult>, AppError> {
     let max_distance = params.max_distance_km.unwrap_or(25.0);
 
     let techs_with_dist = spatial::find_technicians_within_radius(
@@ -184,30 +181,9 @@ pub async fn match_technicians(
     ).await?;
 
     let ranked = rank_technicians(techs_with_dist, None);
+    let technicians: Vec<Technician> = ranked.into_iter().map(|r| r.technician).collect();
+    let count = technicians.len();
 
-    // Fetch ratings for each technician
-    let results: Vec<TechnicianMatchResult> = futures::future::join_all(
-        ranked.iter().map(|rt| async {
-            let rating_result: Result<(Option<f64>, i32), _> = sqlx::query_as(
-                "SELECT rating, total_reviews FROM technicians WHERE id = $1"
-            )
-            .bind(&rt.technician.id)
-            .fetch_optional(&pool)
-            .await
-            .map(|opt| opt.unwrap_or((None, 0)));
-
-            let (rating, total_reviews) = rating_result.unwrap_or((None, 0));
-
-            TechnicianMatchResult {
-                technician: rt.technician.clone(),
-                distance_km: rt.distance_km,
-                match_score: rt.match_score,
-                rating,
-                total_reviews,
-            }
-        })
-    ).await;
-
-    Ok(Json(results))
+    Ok(Json(MatchResult { technicians, count }))
 }
 
