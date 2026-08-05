@@ -34,21 +34,21 @@ pub async fn run_migrations(pool: &PgPool) -> Result<(), sqlx::Error> {
             id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
             user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
             shop_name VARCHAR(255) NOT NULL,
-            phone_number VARCHAR(20) NOT NULL,
-            shop_address TEXT NOT NULL,
+            phone_number VARCHAR(20),
+            shop_address TEXT,
             location_name VARCHAR(255) NOT NULL,
             latitude DOUBLE PRECISION NOT NULL,
             longitude DOUBLE PRECISION NOT NULL,
             certification_level DOUBLE PRECISION NOT NULL DEFAULT 1.0,
             part_authenticity_score DOUBLE PRECISION NOT NULL DEFAULT 1.0,
             speed_score DOUBLE PRECISION NOT NULL DEFAULT 1.0,
-            years_experience INTEGER NOT NULL DEFAULT 1,
-            specializations TEXT NOT NULL DEFAULT '[]',
+            years_experience INTEGER DEFAULT 1,
+            specializations TEXT DEFAULT '[]',
             bio TEXT,
             rating DOUBLE PRECISION,
-            total_reviews INTEGER NOT NULL DEFAULT 0,
-            completion_rate DOUBLE PRECISION NOT NULL DEFAULT 0.0,
-            response_time_hours INTEGER NOT NULL DEFAULT 24,
+            total_reviews INTEGER DEFAULT 0,
+            completion_rate DOUBLE PRECISION DEFAULT 0.0,
+            response_time_hours INTEGER DEFAULT 24,
             is_verified BOOLEAN NOT NULL DEFAULT FALSE,
             created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
             updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
@@ -111,12 +111,12 @@ pub async fn run_migrations(pool: &PgPool) -> Result<(), sqlx::Error> {
     .execute(pool)
     .await?;
 
-    // Rating lookup
-    sqlx::query(
-        "CREATE INDEX IF NOT EXISTS idx_technicians_rating ON technicians(rating DESC);"
+    // Rating lookup (only create if column exists after ALTER TABLE)
+    let _ = sqlx::query(
+        "CREATE INDEX IF NOT EXISTS idx_technicians_rating ON technicians(rating DESC) WHERE rating IS NOT NULL;"
     )
     .execute(pool)
-    .await?;
+    .await;
 
     // Booking indexes
     sqlx::query("CREATE INDEX IF NOT EXISTS idx_bookings_user_id ON repair_bookings(user_id);")
